@@ -22,13 +22,22 @@ def _train(opts, devices, run_id) -> dict:
 
     ### (1) Get datasets
 
-    train_dst, val_dst, test_dst = _get_dataset(opts)
+    strain_dst, sval_dst, stest_dst = _get_dataset(opts, opts.s_dataset, opts.s_dataset_ver)
     
-    train_loader = DataLoader(train_dst, batch_size=opts.batch_size, num_workers=opts.num_workers,
+    s_train_loader = DataLoader(strain_dst, batch_size=opts.batch_size, num_workers=opts.num_workers,
                                 shuffle=True, drop_last=True)
-    val_loader = DataLoader(val_dst, batch_size=opts.val_batch_size, num_workers=opts.num_workers,
+    s_val_loader = DataLoader(sval_dst, batch_size=opts.val_batch_size, num_workers=opts.num_workers,
                                 shuffle=True, drop_last=True)
-    test_loader = DataLoader(test_dst, batch_size=opts.test_batch_size, num_workers=opts.num_workers, 
+    s_test_loader = DataLoader(stest_dst, batch_size=opts.test_batch_size, num_workers=opts.num_workers, 
+                                shuffle=True, drop_last=True)
+
+    ttrain_dst, tval_dst, ttest_dst = _get_dataset(opts, opts.t_dataset, opts.t_dataset_ver)
+    
+    t_train_loader = DataLoader(ttrain_dst, batch_size=opts.batch_size, num_workers=opts.num_workers,
+                                shuffle=True, drop_last=True)
+    t_val_loader = DataLoader(tval_dst, batch_size=opts.val_batch_size, num_workers=opts.num_workers,
+                                shuffle=True, drop_last=True)
+    t_test_loader = DataLoader(ttest_dst, batch_size=opts.test_batch_size, num_workers=opts.num_workers, 
                                 shuffle=True, drop_last=True)
 
     ### (2) Set up criterion
@@ -40,14 +49,12 @@ def _train(opts, devices, run_id) -> dict:
 
     ### (3 -1) Load teacher & student models
 
-    t_model = _load_model(opts=opts, model_name=opts.t_model, verbose=True,
-                            pretrain=opts.t_model_params,
-                            msg=" Teacher model selection: {}".format(opts.t_model),
-                            output_stride=opts.t_output_stride, sep_conv=opts.t_separable_conv).to(devices)
-    
     s_model = _load_model(opts=opts, model_name=opts.s_model, verbose=True,
-                            msg=" Student model selection: {}".format(opts.s_model),
+                            msg=" Primary model selection: {}".format(opts.s_model),
                             output_stride=opts.output_stride, sep_conv=opts.separable_conv)
+    t_model = _load_model(opts=opts, model_name=opts.t_model, verbose=True,
+                            msg=" Auxiliary model selection: {}".format(opts.t_model),
+                            output_stride=opts.t_output_stride, sep_conv=opts.t_separable_conv)
 
     ### (4) Set up optimizer
 
@@ -87,6 +94,7 @@ def _train(opts, devices, run_id) -> dict:
     if opts.resume_ckpt is not None and os.path.isfile(opts.resume_ckpt):
         if torch.cuda.device_count() > 1:
             s_model = nn.DataParallel(s_model)
+            t_model = nn.DataParallel(t_model)
         checkpoint = torch.load(opts.resume_ckpt, map_location=torch.device('cpu'))
         s_model.load_state_dict(checkpoint["model_state"])
         s_model.to(devices)
@@ -105,7 +113,9 @@ def _train(opts, devices, run_id) -> dict:
         resume_epoch = 0
         if torch.cuda.device_count() > 1:
             s_model = nn.DataParallel(s_model)
+            t_model = nn.DataParallel(t_model)
         s_model.to(devices)
+        t_model.to(devices)
 
     #### (6) Set up metrics
 
@@ -125,7 +135,26 @@ def _train(opts, devices, run_id) -> dict:
         metrics.reset()
         running_loss = 0.0
 
-        for (images, lbl) in train_loader:
+        for (images, lbl) in t_train_loader:
+            images = images.to(devices)
+            lbl = lbl.to(devices)
+
+            optimizer.zero_grad()
+            
+            s_outputs = s_model(images)
+            probs = nn.Softmax(dim=1)(s_outputs)
+            preds = torch.max(probs, 1)[1].detach().cpu().numpy()
+            t_outputs = t_model(images)
+            
+            weights = lbl.detach().cpu().numpy().sum() / (lbl.shape[0] * lbl.shape[1] * lbl.shape[2])
+            weights = torch.tensor([weights, 1-weights], dtype=torch.float32).to(devices)
+            criterion = utils.KDLoss(weight=weights, alpha=opts.alpha, temperature=opts.T)
+            loss = criterion(s_outputs, t_outputs, lbl)
+            loss.backward()
+
+            optimizer.step()
+
+        for (images, lbl) in s_train_loader:
             images = images.to(devices)
             lbl = lbl.to(devices)
 
@@ -149,7 +178,7 @@ def _train(opts, devices, run_id) -> dict:
 
         scheduler.step()
         score = metrics.get_results()
-        epoch_loss = running_loss / len(train_loader.dataset)
+        epoch_loss = running_loss / len(s_train_loader.dataset)
 
         if epoch > 0:
             for i in range(14):
@@ -168,7 +197,7 @@ def _train(opts, devices, run_id) -> dict:
             writer.add_scalar('epoch loss/train', epoch_loss, epoch)
         
         if (epoch + 1) % opts.val_interval == 0:
-            val_score, val_loss = _validate(opts, s_model, t_model, val_loader, 
+            val_score, val_loss = _validate(opts, s_model, t_model, s_val_loader, 
                                             devices, metrics, epoch, criterion)
             print("[{}] Epoch: {}/{} Loss: {:.5f}".format('Val', epoch+1, opts.total_itrs, val_loss))
             print("\tF1 [0]: {:.5f} [1]: {:.5f}".format(val_score['Class F1'][0], val_score['Class F1'][1]))
@@ -185,7 +214,7 @@ def _train(opts, devices, run_id) -> dict:
                 writer.add_scalar('epoch loss/val', val_loss, epoch)
         
         if (epoch + 1) % opts.test_interval == 0:
-            test_score, test_loss = _validate(opts, s_model, t_model, test_loader, 
+            test_score, test_loss = _validate(opts, s_model, t_model, s_test_loader, 
                                             devices, metrics, epoch, criterion)
 
             print("[{}] Epoch: {}/{} Loss: {:.5f}".format('Test', epoch+1, opts.total_itrs, test_loss))
@@ -223,7 +252,7 @@ def _train(opts, devices, run_id) -> dict:
                 checkpoint = torch.load(os.path.join(opts.best_ckpt, 'dicecheckpoint.pt'), map_location=devices)
             s_model.load_state_dict(checkpoint["model_state"])
             sdir = os.path.join(opts.test_results_dir, 'epoch_{}'.format(B_epoch))
-            utils.save(sdir, s_model, test_loader, devices, opts.is_rgb)
+            utils.save(sdir, s_model, s_test_loader, devices, opts.is_rgb)
             del checkpoint
             del s_model
             torch.cuda.empty_cache()
@@ -231,7 +260,7 @@ def _train(opts, devices, run_id) -> dict:
             checkpoint = torch.load(os.path.join(opts.best_ckpt, 'dicecheckpoint.pt'), map_location=devices)
             s_model.load_state_dict(checkpoint["model_state"])
             sdir = os.path.join(opts.test_results_dir, 'epoch_{}'.format(B_epoch))
-            utils.save(sdir, s_model, test_loader, devices, opts.is_rgb)
+            utils.save(sdir, s_model, s_test_loader, devices, opts.is_rgb)
             del checkpoint
             del s_model
             torch.cuda.empty_cache()
@@ -242,7 +271,7 @@ def _train(opts, devices, run_id) -> dict:
             os.rmdir(os.path.join(opts.best_ckpt))
 
     return {
-                'Model' : opts.s_model, 'Dataset' : opts.dataset,
+                'Model' : opts.s_model, 'Dataset' : opts.s_dataset,
                 'Policy' : opts.lr_policy, 'OS' : str(opts.output_stride), 'Epoch' : str(B_epoch),
                 'F1 [0]' : B_test_score['Class F1'][0], 'F1 [1]' : B_test_score['Class F1'][1]
             }

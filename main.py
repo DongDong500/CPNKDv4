@@ -25,7 +25,8 @@ if __name__ == '__main__':
         params = save_argparser(opts, os.path.join(opts.default_prefix, opts.current_time))
 
         start_time = datetime.now()
-
+        
+        mlog['Short Memo'] = opts.short_memo
         mlog['Single experimnet'] = train(opts)
         params['Single experimnet'] = mlog['Single experimnet']
 

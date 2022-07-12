@@ -24,14 +24,22 @@ def train(opts) -> dict:
             
     f10 = 0
     f11 = 0
+    s10 = 0
+    s11 = 0
     N = 0
     for k in test_result.keys():
         N += 1
         f10 += test_result[k]['F1 [0]']
         f11 += test_result[k]['F1 [1]']
+        s10 += test_result[k]['F1 [0]'] ** 2
+        s11 += test_result[k]['F1 [1]'] ** 2
     f10 /= N
     f11 /= N
+    s10 /= N
+    s11 /= N
+    s10 = np.sqrt(s10 - f10**2)
+    s11 = np.sqrt(s11 - f11**2)
 
     return {
-        'F1 [0]' : f'{f10:.4f}', 'F1 [1]' : f'{f11:.4f}'
+        'F1 [0]' : f'{f10:.4f}, std: {s10:.4f}', 'F1 [1]' : f'{f11:.4f}, std: {s11:.4f}'
     }

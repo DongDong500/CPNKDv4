@@ -36,6 +36,8 @@ def _get_argparser():
 
     parser = argparse.ArgumentParser()
 
+    parser.add_argument("--short_memo", type=str, default='short memo',
+                        help="breif explanation of experiment (default: short memo")
     parser.add_argument("--default_prefix", type=str, default='/',
                         help="path to results (default: /")
     parser.add_argument("--data_root", type=str, default='/',
@@ -58,11 +60,11 @@ def _get_argparser():
                               not (name.startswith("__") or name.startswith('_')) and callable(
                               network.model.__dict__[name]) )
     parser.add_argument("--t_model", type=str, default='unet_rgb', choices=available_models,
-                        help='model name (default: Unet RGB)')
+                        help='auxiliary model name (default: Unet RGB)')
     parser.add_argument("--s_model", type=str, default='unet_rgb', choices=available_models,
-                        help='model name (default: Unet RGB)')
+                        help='primary model name (default: Unet RGB)')
     parser.add_argument("--t_model_params", type=str, default='/',
-                        help="pretrained teacher network params (default: '/')")
+                        help="pretrained auxiliary network params (default: '/')")
     # DeeplabV3+ options
     parser.add_argument("--separable_conv", action='store_true', default=False,
                         help="apply separable conv to decoder and aspp (default: False)")
@@ -82,14 +84,18 @@ def _get_argparser():
     parser.add_argument("--num_workers", type=int, default=12,
                         help="number of workers (default: 12)")
     available_datasets = sorted( name for name in datasets.getdata.__dict__ if  callable(datasets.getdata.__dict__[name]) )
-    parser.add_argument("--dataset", type=str, default="CPN_six", choices=available_datasets,
-                        help='Name of dataset (default: CPN_six)')
+    parser.add_argument("--t_dataset", type=str, default="median", choices=available_datasets,
+                        help='auxiliary dataset (default: median)')
+    parser.add_argument("--s_dataset", type=str, default="cpn", choices=available_datasets,
+                        help='primary dataset (default: cpn)')
     parser.add_argument("--num_classes", type=int, default=2,
                         help="number of classes (default: 2)")
     parser.add_argument("--is_rgb", action='store_false', default=True,
                         help="choose True: RGB, False: gray (default: True)")
-    parser.add_argument("--dataset_ver", type=str, default="splits/v5/3",
-                        help="version of dataset (default: splits/v5/3)")
+    parser.add_argument("--t_dataset_ver", type=str, default="splits",
+                        help="version of auxiliary dataset (default: splits)")
+    parser.add_argument("--s_dataset_ver", type=str, default="splits/v5/3",
+                        help="version of primary dataset (default: splits/v5/3)")
     parser.add_argument("--tvs", type=int, default=5,
                         help="number of blocks to split train set (default: 5)")
 
