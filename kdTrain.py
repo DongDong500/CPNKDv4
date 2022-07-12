@@ -35,8 +35,8 @@ def train(opts) -> dict:
         s11 += test_result[k]['F1 [1]'] ** 2
     f10 /= N
     f11 /= N
-    s10 /= N
-    s11 /= N
+    s10 /= (N-1)
+    s11 /= (N-1)
     s10 = np.sqrt(s10 - f10**2)
     s11 = np.sqrt(s11 - f11**2)
 
