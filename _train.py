@@ -9,7 +9,8 @@ from tensorboardX import SummaryWriter
 import utils
 from metrics import StreamSegMetrics
 from _get_dataset import _get_dataset
-from _validate import _validate
+from _loop_eval import _validate
+from _loop_train import _accumulate
 from _load_model import _load_model
 
 LINE_UP = '\033[1A'
@@ -131,58 +132,22 @@ def _train(opts, devices, run_id) -> dict:
     B_test_score = {}
 
     for epoch in range(resume_epoch, opts.total_itrs):
-        s_model.train()
-        metrics.reset()
-        running_loss = 0.0
 
-        for (images, lbl) in t_train_loader:
-            images = images.to(devices)
-            lbl = lbl.to(devices)
+        criterion = utils.KDLoss(alpha=opts.alpha, temperature=opts.T)
 
-            optimizer.zero_grad()
-            
-            s_outputs = s_model(images)
-            probs = nn.Softmax(dim=1)(s_outputs)
-            preds = torch.max(probs, 1)[1].detach().cpu().numpy()
-            t_outputs = t_model(images)
-            
-            weights = lbl.detach().cpu().numpy().sum() / (lbl.shape[0] * lbl.shape[1] * lbl.shape[2])
-            weights = torch.tensor([weights, 1-weights], dtype=torch.float32).to(devices)
-            criterion = utils.KDLoss(weight=weights, alpha=opts.alpha, temperature=opts.T)
-            loss = criterion(s_outputs, t_outputs, lbl)
-            loss.backward()
+        _accumulate(s_model=s_model, t_model=t_model, loader=t_train_loader, 
+                    optimizer=optimizer, get_metrics=False, device=devices,
+                    metrics=metrics, criterion=criterion)
 
-            optimizer.step()
-
-        for (images, lbl) in s_train_loader:
-            images = images.to(devices)
-            lbl = lbl.to(devices)
-
-            optimizer.zero_grad()
-            
-            s_outputs = s_model(images)
-            probs = nn.Softmax(dim=1)(s_outputs)
-            preds = torch.max(probs, 1)[1].detach().cpu().numpy()
-            t_outputs = t_model(images)
-            
-            weights = lbl.detach().cpu().numpy().sum() / (lbl.shape[0] * lbl.shape[1] * lbl.shape[2])
-            weights = torch.tensor([weights, 1-weights], dtype=torch.float32).to(devices)
-            criterion = utils.KDLoss(weight=weights, alpha=opts.alpha, temperature=opts.T)
-            loss = criterion(s_outputs, t_outputs, lbl)
-            loss.backward()
-            
-            optimizer.step()
-            
-            metrics.update(lbl.detach().cpu().numpy(), preds)
-            running_loss += loss.item() * images.size(0)
+        score, epoch_loss = _accumulate(s_model=s_model, t_model=t_model, loader=s_train_loader, 
+                                        optimizer=optimizer, get_metrics=True, device=devices,
+                                        metrics=metrics, criterion=criterion)
 
         scheduler.step()
-        score = metrics.get_results()
-        epoch_loss = running_loss / len(s_train_loader.dataset)
 
         if epoch > 0:
             for i in range(14):
-                print(LINE_UP, end=LINE_CLEAR)
+                print(LINE_UP, end=LINE_CLEAR) 
 
         print("[{}] Epoch: {}/{} Loss: {:.5f}".format('Train', epoch+1, opts.total_itrs, epoch_loss))
         print("\tF1 [0]: {:.5f} [1]: {:.5f}".format(score['Class F1'][0], score['Class F1'][1]))

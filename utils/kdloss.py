@@ -85,6 +85,9 @@ class KDLoss(_WeightedLoss):
         self.multiclass = multiclass
         self.num_classes = num_classes
 
+    def update_weight(self, weight: Optional[Tensor] = None):
+        self.weight = weight
+
     def forward(self, s_input: Tensor, t_input: Tensor, target: Tensor) -> Tensor:
 
         ce = F.cross_entropy(s_input, target, weight=self.weight)
