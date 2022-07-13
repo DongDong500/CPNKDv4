@@ -35,10 +35,11 @@ def train(opts) -> dict:
         s11 += test_result[k]['F1 [1]'] ** 2
     f10 /= N
     f11 /= N
-    s10 /= (N-1)
-    s11 /= (N-1)
-    s10 = np.sqrt(s10 - f10**2)
-    s11 = np.sqrt(s11 - f11**2)
+    s10 /= N
+    s11 /= N
+    # sample standard deviation
+    s10 = np.sqrt((N/(N-1))*(s10 - f10**2))
+    s11 = np.sqrt((N/(N-1))*(s11 - f11**2))
 
     return {
         'F1 [0]' : f'{f10:.4f}, std: {s10:.4f}', 'F1 [1]' : f'{f11:.4f}, std: {s11:.4f}'
