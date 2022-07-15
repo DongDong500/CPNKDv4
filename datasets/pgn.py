@@ -3,7 +3,7 @@ import sys
 import torch.utils.data as data
 from PIL import Image
 
-class PMN(data.Dataset):
+class PGN(data.Dataset):
     """
     Args:6
         root (string): Root directory of the VOC Dataset.
@@ -46,17 +46,16 @@ class PMN(data.Dataset):
 
         image_dir = os.path.join(root, 'CPN_all', 'Images')
         mask_dir = os.path.join(root, 'CPN_all', 'Masks')
-        median_image_dir = os.path.join(root, 'Median', 'Images')
-        median_mask_dir = os.path.join(root, 'Median', 'Masks')
+        gmm_image_dir = os.path.join(root, 'CPN_all_gmm/1sigma', 'Images')
 
         if not os.path.exists(image_dir) or not os.path.exists(mask_dir):
             raise Exception('Dataset not found or corrupted.')
         
-        if not os.path.exists(median_image_dir) or not os.path.exists(median_mask_dir):
+        if not os.path.exists(gmm_image_dir):
             raise Exception('Dataset not found or corrupted.')
         
         split_f = os.path.join(root, 'CPN_all', dver, image_set.rstrip('\n') + '.txt')
-        m_split_f = os.path.join(root, 'Median/splits', image_set.rstrip('\n') + '.txt')
+        m_split_f = os.path.join(root, 'CPN_all_gmm/1sigma', dver, image_set.rstrip('\n') + '.txt')
 
         if not os.path.exists(split_f) or not os.path.exists(m_split_f):
             raise Exception('Wrong image_set entered!', split_f, m_split_f)
@@ -71,8 +70,8 @@ class PMN(data.Dataset):
         self.masks = [os.path.join(mask_dir, x + "_mask.bmp") for x in file_names]
         
         if image_set == 'train' or image_set == 'val':
-            self.images.extend([os.path.join(median_image_dir, x + ".jpg") for x in m_file_names])
-            self.masks.extend([os.path.join(median_mask_dir, x + ".jpg") for x in m_file_names])
+            self.images.extend([os.path.join(gmm_image_dir, x + ".bmp") for x in m_file_names])
+            self.masks.extend([os.path.join(mask_dir, x + "_mask.bmp") for x in m_file_names])
 
         assert (len(self.images) == len(self.masks))
 
@@ -107,7 +106,7 @@ if __name__ == "__main__":
             et.ExtNormalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             ])
     
-    dst = PMN(root='/data1/sdi/datasets', datatype='pmn', image_set='train',
+    dst = PGN(root='/data1/sdi/datasets', datatype='pgn', image_set='train',
                     transform=transform, is_rgb=True, dver='splits/v5/3')
     train_loader = DataLoader(dst, batch_size=16,
                                 shuffle=True, num_workers=2, drop_last=True)

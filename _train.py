@@ -135,9 +135,9 @@ def _train(opts, devices, run_id) -> dict:
 
         criterion = utils.KDLoss(alpha=opts.alpha, temperature=opts.T)
 
-        _accumulate(s_model=s_model, t_model=t_model, loader=t_train_loader, 
-                    optimizer=optimizer, get_metrics=False, device=devices,
-                    metrics=metrics, criterion=criterion)
+        #_accumulate(s_model=s_model, t_model=t_model, loader=t_train_loader, 
+        #            optimizer=optimizer, get_metrics=False, device=devices,
+        #            metrics=metrics, criterion=criterion)
 
         score, epoch_loss = _accumulate(s_model=s_model, t_model=t_model, loader=s_train_loader, 
                                         optimizer=optimizer, get_metrics=True, device=devices,
