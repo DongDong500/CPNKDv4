@@ -6,12 +6,26 @@ import random
 
 from _train import _train
 
+
+'''
+    Return format
+
+    mlog['Experiments'] = {
+            "1" : {
+                "F1-0" : 0.1, "F1-1" : 0.9
+            },
+            "2" : {
+                "F1-0" : 0.1, "F1-1" : 0.9
+            },
+            "Overall F1[0] mean/std" : "0.2/0.01",
+            "Overall F1[1] mean/std" : "0.4/0.01"
+        }
+'''
+
 def train(opts) -> dict:
 
-    os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
-    os.environ['CUDA_VISIBLE_DEVICES'] = str(opts.gpus)
     devices = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print("Device: %s: %s" % (devices, str(opts.gpus)))
+    print("Device: %s:" % (devices, opts.gpus))
 
     torch.manual_seed(opts.random_seed)
     np.random.seed(opts.random_seed)
@@ -41,6 +55,7 @@ def train(opts) -> dict:
     s10 = np.sqrt((N/(N-1))*(s10 - f10**2))
     s11 = np.sqrt((N/(N-1))*(s11 - f11**2))
 
-    return {
-        'F1 [0]' : f'{f10:.4f}, std: {s10:.4f}', 'F1 [1]' : f'{f11:.4f}, std: {s11:.4f}'
-    }
+    test_result["Overall F1[0] mean/std"] = f"{f10}/{s10}"
+    test_result["Overall F1[1] mean/std"] = f"{f11}/{s11}"
+    
+    return test_result

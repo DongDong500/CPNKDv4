@@ -28,16 +28,14 @@ class MailSend(object):
         self.message = msg
         self.attach = attach
         self.ID = ID
-
-        if login_dir is not None:
-            self.login_dir = login_dir
+        self.login_dir = login_dir
 
         if os.path.exists(self.login_dir):
             with open(self.login_dir, "r") as f:
                 self.users = json.load(f)
                 self.PW = self.users[self.ID]
         else:
-            raise Exception("Log-In file not found: ", self.login_dir)
+            raise RuntimeError("login file not found: ", self.login_dir)
 
     def send(self):
         """
@@ -54,9 +52,7 @@ class MailSend(object):
 
         msg = MIMEMultipart()
         msg['Subject'] = self.subject
-        msg.attach(MIMEText('Auto mail transfer system ... \n', 'plain'))
-        msg.attach(MIMEText('\nShort Reports \n', 'plain'))
-
+        msg.attach(MIMEText('Auto mail transfer system ... \n\n', 'plain'))
         if isinstance(self.message, dict):
             for key, val in self.message.items():
                 if isinstance(val, dict):

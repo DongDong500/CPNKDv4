@@ -17,20 +17,20 @@ def _get_dataset(opts, dataset, dver):
         et.GaussianPerturb(mean=0, std=opts.std)
         ])
     val_transform = et.ExtCompose([
-        et.ExtResize(size=opts.val_resize),
-        et.ExtRandomCrop(size=opts.val_crop_size, pad_if_needed=True),
-        et.ExtScale(scale=opts.scale_factor),
+        et.ExtResize(size=opts.resize_val),
+        et.ExtRandomCrop(size=opts.crop_size_val, pad_if_needed=True),
+        et.ExtScale(scale=opts.scale_factor_val),
         et.ExtToTensor(),
         et.ExtNormalize(mean=mean, std=std),
-        et.GaussianPerturb(mean=0, std=opts.val_std)
+        et.GaussianPerturb(mean=0, std=opts.std_val)
         ])
     test_transform = et.ExtCompose([
-        et.ExtResize(size=opts.test_resize),
-        et.ExtRandomCrop(size=opts.val_crop_size, pad_if_needed=True),
-        et.ExtScale(scale=opts.scale_factor),
+        et.ExtResize(size=opts.resize_test),
+        et.ExtRandomCrop(size=opts.crop_size_test, pad_if_needed=True),
+        et.ExtScale(scale=opts.scale_factor_test),
         et.ExtToTensor(),
         et.ExtNormalize(mean=mean, std=std),
-        et.GaussianPerturb(mean=0, std=opts.test_std)
+        et.GaussianPerturb(mean=0, std=opts.std_test)
         ])
 
     train_dst = dt.getdata.__dict__[dataset](root=opts.data_root, 
