@@ -103,8 +103,14 @@ def _get_argparser():
                         help="The number of blocks where train set to be split (default: 5)")
     # Transformation & Augmentation options
     parser.add_argument("--resize", default=(496, 468))
+    parser.add_argument("--is_resize", action='store_true', default=False,
+                        help="resize data (default: False)")
     parser.add_argument("--resize_val", default=(496, 468))
+    parser.add_argument("--is_resize_val", action='store_true', default=False,
+                        help="resize validate data (default: False)")
     parser.add_argument("--resize_test", default=(496, 468))
+    parser.add_argument("--is_resize_test", action='store_true', default=False,
+                        help="resize test data (default: False)")
     parser.add_argument("--crop_size", default=(512, 448))
     parser.add_argument("--crop_size_val", default=(512, 448))
     parser.add_argument("--crop_size_test", default=(512, 448))
@@ -141,8 +147,8 @@ def _get_argparser():
     parser.add_argument("--exp_itr", type=int, default=2,
                         help='repeat N-identical experiments (default: 2)')    
     # Knowledge distillation
-    parser.add_argument("--alpha", type=float, default=0.5,
-                        help="alpha for KD loss (default: 0.5)")
+    parser.add_argument("--alpha", type=float, default=0,
+                        help="alpha for KD loss (default: 0)")
     parser.add_argument("--T", type=float, default=3,
                         help="temperature in KD loss (default: 3)")
     # Validate options

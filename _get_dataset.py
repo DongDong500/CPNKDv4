@@ -8,7 +8,7 @@ def _get_dataset(opts, dataset, dver):
     std = [0.229, 0.224, 0.225] if opts.is_rgb else [0.229]
 
     train_transform = et.ExtCompose([
-        et.ExtResize(size=opts.resize),
+        et.ExtResize(size=opts.resize, is_resize=opts.is_resize),
         et.ExtRandomCrop(size=opts.crop_size, pad_if_needed=True),
         et.ExtScale(scale=opts.scale_factor),
         et.ExtRandomVerticalFlip(),
@@ -17,7 +17,7 @@ def _get_dataset(opts, dataset, dver):
         et.GaussianPerturb(mean=0, std=opts.std)
         ])
     val_transform = et.ExtCompose([
-        et.ExtResize(size=opts.resize_val),
+        et.ExtResize(size=opts.resize_val, is_resize=opts.is_resize_val),
         et.ExtRandomCrop(size=opts.crop_size_val, pad_if_needed=True),
         et.ExtScale(scale=opts.scale_factor_val),
         et.ExtToTensor(),
@@ -25,7 +25,7 @@ def _get_dataset(opts, dataset, dver):
         et.GaussianPerturb(mean=0, std=opts.std_val)
         ])
     test_transform = et.ExtCompose([
-        et.ExtResize(size=opts.resize_test),
+        et.ExtResize(size=opts.resize_test, is_resize=opts.is_resize_test),
         et.ExtRandomCrop(size=opts.crop_size_test, pad_if_needed=True),
         et.ExtScale(scale=opts.scale_factor_test),
         et.ExtToTensor(),

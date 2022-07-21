@@ -25,7 +25,7 @@ from _train import _train
 def train(opts) -> dict:
 
     devices = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print("Device: %s:" % (devices, opts.gpus))
+    print("Device: %s: %s" % (devices, opts.gpus))
 
     torch.manual_seed(opts.random_seed)
     np.random.seed(opts.random_seed)
@@ -55,7 +55,7 @@ def train(opts) -> dict:
     s10 = np.sqrt((N/(N-1))*(s10 - f10**2))
     s11 = np.sqrt((N/(N-1))*(s11 - f11**2))
 
-    test_result["Overall F1[0] mean/std"] = f"{f10}/{s10}"
-    test_result["Overall F1[1] mean/std"] = f"{f11}/{s11}"
+    test_result["Overall F1[0] mean/std"] = f"{f10:.8f}/{s10:.8f}"
+    test_result["Overall F1[1] mean/std"] = f"{f11:.8f}/{s11:.8f}"
     
     return test_result

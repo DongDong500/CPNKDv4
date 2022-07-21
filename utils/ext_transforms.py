@@ -417,9 +417,10 @@ class ExtResize(object):
             ``PIL.Image.BILINEAR``
     """
 
-    def __init__(self, size, interpolation=F.InterpolationMode.BILINEAR):
+    def __init__(self, size, is_resize, interpolation=F.InterpolationMode.BILINEAR):
         assert isinstance(size, int) or (isinstance(size, collections.Iterable) and len(size) == 2)
         self.size = size
+        self.is_resize = is_resize
         self.interpolation = interpolation
 
     def __call__(self, img, lbl):
@@ -429,7 +430,10 @@ class ExtResize(object):
         Returns:
             PIL Image: Rescaled image.
         """
-        return F.resize(img, self.size, self.interpolation), F.resize(lbl, self.size, F.InterpolationMode.BILINEAR)
+        if self.is_resize:
+            return F.resize(img, self.size, self.interpolation), F.resize(lbl, self.size, F.InterpolationMode.BILINEAR)
+        else:
+            return img, lbl
 
     def __repr__(self):
         interpolate_str = _pil_interpolation_to_str[self.interpolation]
