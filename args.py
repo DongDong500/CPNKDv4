@@ -77,12 +77,12 @@ def _get_argparser():
     # DeeplabV3+ options
     parser.add_argument("--separable_conv", action='store_true', default=False,
                         help="primary model: apply separable conv to decoder and aspp (default: False)")
-    parser.add_argument("--output_stride", type=int, default=16, choices=[8, 16, 32, 64],
-                        help="primary model: output stride (default: 16)")
+    parser.add_argument("--output_stride", type=int, default=32, choices=[8, 16, 32, 64],
+                        help="primary model: output stride (default: 32)")
     parser.add_argument("--t_separable_conv", action='store_true', default=False,
                         help="auxiliary model: apply separable conv to decoder and aspp (default: False)")
-    parser.add_argument("--t_output_stride", type=int, default=16, choices=[8, 16, 32, 64],
-                        help="auxiliary model: output stride (default: 16)")
+    parser.add_argument("--t_output_stride", type=int, default=32, choices=[8, 16, 32, 64],
+                        help="auxiliary model: output stride (default: 32)")
     # Dataset options
     available_datasets = sorted( name for name in datasets.getdata.__dict__ if  callable(datasets.getdata.__dict__[name]) )
     parser.add_argument("--s_dataset", type=str, default="cpn", choices=available_datasets,
@@ -119,10 +119,16 @@ def _get_argparser():
     parser.add_argument("--scale_factor_test", type=float, default=5e-1)
     parser.add_argument("--std", type=float, default=0.0,
                         help="train sigma in gaussian perturbation (default: 0)")
+    parser.add_argument("--mu", type=float, default=0.0,
+                        help="train mean in gaussian perturbation (default: 0)")
     parser.add_argument("--std_val", type=float, default=0.0,
-                        help="val sigma in gaussian perturbation (default: 0)")                    
+                        help="val sigma in gaussian perturbation (default: 0)")
+    parser.add_argument("--mu_val", type=float, default=0.0,
+                        help="val mean in gaussian perturbation (default: 0)")                
     parser.add_argument("--std_test", type=float, default=0.0,
                         help="test sigma in gaussian perturbation (default: 0)")
+    parser.add_argument("--mu_test", type=float, default=0.0,
+                        help="test mean in gaussian perturbation (default: 0)") 
     # Train options
     parser.add_argument("--random_seed", type=int, default=1,
                         help="random seed (default: 1)")
@@ -140,8 +146,8 @@ def _get_argparser():
                         help='momentum (default: 0.9)')
     parser.add_argument("--optim", type=str, default='SGD',
                         help="optimizer (default: SGD)")
-    parser.add_argument("--loss_type", type=str, default='dice_loss',
-                        help="criterion (default: dice loss)")
+    parser.add_argument("--loss_type", type=str, default='kd_loss',
+                        help="criterion (default: kd loss alpha=0 for ce+dl)")
     parser.add_argument("--batch_size", type=int, default=16,
                         help='batch size (default: 16)')
     parser.add_argument("--exp_itr", type=int, default=2,

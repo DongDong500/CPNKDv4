@@ -14,6 +14,26 @@ class CPN(data.Dataset):
         dver (str): version of dataset (ex) ``splits/v5/3``
         kfold (int): k-fold cross validation
     """
+    def _read(self, index):
+        """
+        Args:
+            index (int): Index
+        Returns:
+            tuple: (image, target) where target is the image segmentation.
+        """
+        if not os.path.exists(self.images[index]):
+            raise FileNotFoundError
+        if not os.path.exists(self.masks[index]):
+            raise FileNotFoundError
+        
+        if self.is_rgb:
+            img = Image.open(self.images[index]).convert('RGB')
+            target = Image.open(self.masks[index]).convert('L')         
+        else:
+            img = Image.open(self.images[index]).convert('L')
+            target = Image.open(self.masks[index]).convert('L')            
+
+        return img, target
 
     def __init__(self, root, datatype='CPN', dver='splits', 
                     image_set='train', transform=None, is_rgb=True):
@@ -39,30 +59,23 @@ class CPN(data.Dataset):
         self.images = [os.path.join(image_dir, x + ".bmp") for x in file_names]
         self.masks = [os.path.join(mask_dir, x + "_mask.bmp") for x in file_names]
         
-        assert (len(self.images) == len(self.masks))   
+        assert (len(self.images) == len(self.masks))
+
+        self.image = []
+        self.mask = []
+        for index in range(len(self.images)):
+            img, tar = self._read(index)
+            self.image.append(img)
+            self.mask.append(tar)
 
     def __getitem__(self, index):
-        """
-        Args:
-            index (int): Index
-        Returns:
-            tuple: (image, target) where target is the image segmentation.
-        """
-        if not os.path.exists(self.images[index]):
-            raise FileNotFoundError
-        if not os.path.exists(self.masks[index]):
-            raise FileNotFoundError
-        
-        if self.is_rgb:
-            img = Image.open(self.images[index]).convert('RGB')
-            target = Image.open(self.masks[index]).convert('L')         
-        else:
-            img = Image.open(self.images[index]).convert('L')
-            target = Image.open(self.masks[index]).convert('L')            
 
+        img = self.image[index]
+        target = self.mask[index]
+        
         if self.transform is not None:
             img, target = self.transform(img, target)
-
+        
         return img, target
 
     def __len__(self):

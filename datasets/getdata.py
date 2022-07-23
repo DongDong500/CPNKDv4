@@ -8,6 +8,8 @@ from .pmn import PMN
 from .median import Median
 from .pgn import PGN
 from .pgmn import PGMN
+from .pgpn import PGPN
+from .pppn import PPPN
 from utils.ext_transforms import ExtCompose
 
 def mktv(root:str = '/', datatype:str = 'CPN', dver:str = 'splits', tvs:int = 5):
@@ -160,6 +162,33 @@ def pgmn(root:str = '/', datatype:str = 'PGMN', dver:str = 'splits',
 
     return PGMN(root, 'CPN_all', dver, image_set, transform, is_rgb)
 
+def pgpn(root:str = '/', datatype:str = 'PGPN', dver:str = 'splits',
+            image_set:str = 'train', transform:ExtCompose = None, is_rgb:bool = True, tvs:int = 5):
+    
+    """ -Peroneal nerve (all parts: fiber head (FH), fibular neuropathy (FN+0 ~ 15), POP+0 ~ 5)
+        490 samples
+        -Gaussian Mixture
+    """
+    if tvs < 2:
+        raise Exception("tvs must be larger than 1")
+    elif image_set == 'train':
+        mktv(root, 'CPN_all', dver, tvs)
+
+    return PGPN(root, 'CPN_all', dver, image_set, transform, is_rgb)
+    
+def pppn(root:str = '/', datatype:str = 'PPPN', dver:str = 'splits',
+            image_set:str = 'train', transform:ExtCompose = None, is_rgb:bool = True, tvs:int = 5):
+    
+    """ -Peroneal nerve (all parts: fiber head (FH), fibular neuropathy (FN+0 ~ 15), POP+0 ~ 5)
+        490 samples
+        -Gaussian Mixture
+    """
+    if tvs < 2:
+        raise Exception("tvs must be larger than 1")
+    elif image_set == 'train':
+        mktv(root, 'CPN_all', dver, tvs)
+
+    return PPPN(root, 'CPN_all', dver, image_set, transform, is_rgb)
 
 if __name__ == "__main__":
     print(os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ))

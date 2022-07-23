@@ -2,7 +2,6 @@ import torch
 from .unet import UNet
 from .unet_gray import UNet_gray
 from .modeling.deeplab import *
-from .deeplabv3 import DeepLabV3
 from .backbone import resnet
 from .utils import IntermediateLayerGetter
 from ._deeplab import DeepLabHead, DeepLabHeadV3Plus, DeepLabV3
@@ -72,10 +71,6 @@ def deeplab(channel=1, num_classes=2):
     print('DeepLab - Channel: {} Classes: {}'.format(channel, num_classes))
     return DeepLab(num_classes=num_classes, backbone='resnet', output_stride=16,
                     sync_bn=True, freeze_bn=False)
-
-def deeplabv3(channel=1, num_classes=2):
-    print('DeepLabV3 - Channel: {} Classes: {}'.format(channel, num_classes))
-    return DeepLabV3()
 
 def deeplabv3_resnet50(channel=1, num_classes=2, output_stride=8, pretrained_backbone=True):
     """Constructs a DeepLabV3 model with a ResNet-50 backbone.

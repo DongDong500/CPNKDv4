@@ -135,15 +135,10 @@ def _train(opts, devices, run_id) -> dict:
 
         criterion = utils.KDLoss(alpha=opts.alpha, temperature=opts.T)
 
-        #_accumulate(s_model=s_model, t_model=t_model, loader=t_train_loader, 
-        #            optimizer=optimizer, get_metrics=False, device=devices,
-        #            metrics=metrics, criterion=criterion)
-
         score, epoch_loss = _accumulate(s_model=s_model, t_model=t_model, loader=s_train_loader, 
-                                        optimizer=optimizer, get_metrics=True, device=devices,
+                                        optimizer=optimizer, scheduler=scheduler, 
+                                        get_metrics=True, device=devices,
                                         metrics=metrics, criterion=criterion)
-
-        scheduler.step()
 
         if epoch > 0:
             for i in range(14):
@@ -163,6 +158,7 @@ def _train(opts, devices, run_id) -> dict:
         if (epoch + 1) % opts.val_interval == 0:
             val_score, val_loss = _validate(opts, s_model, t_model, s_val_loader, 
                                             devices, metrics, epoch, criterion)
+
             print("[{}] Epoch: {}/{} Loss: {:.5f}".format('Val', epoch+1, opts.total_itrs, val_loss))
             print("\tF1 [0]: {:.5f} [1]: {:.5f}".format(val_score['Class F1'][0], val_score['Class F1'][1]))
             print("\tIoU[0]: {:.5f} [1]: {:.5f}".format(val_score['Class IoU'][0], val_score['Class IoU'][1]))

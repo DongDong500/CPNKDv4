@@ -15,7 +15,7 @@ class PGMN(data.Dataset):
         dver (str): version of dataset (ex) ``splits/v5/3``
         kfold (int): k-fold cross validation
     """
-    def _read(self, index):
+    def _read(self, index, is_test):
         """
         Args:
             index (int): Index
@@ -30,19 +30,18 @@ class PGMN(data.Dataset):
         block = int(len(self.m_images) / len(self.images))
         m_index = block * index + np.random.randint(0, block)
         
-        img = Image.open(self.images[index]).convert('L')
-        target = Image.open(self.masks[index]).convert('L')            
-        m_img = Image.open(self.m_images[m_index]).convert('L')
-        m_img = m_img.resize(img.size)
-
-        img = np.expand_dims(np.array(img, dtype='uint8'), axis=2)
-        m_img = np.expand_dims(np.array(m_img, dtype='uint8'), axis=2)
-        gau = np.array(np.random.normal(loc=125, scale=0.2*255*255, size=img.shape), dtype='uint8')
-
-        img = Image.fromarray(np.concatenate((img, gau, m_img), axis=2))
-
-        if self.transform is not None:
-            img, target = self.transform(img, target)
+        if is_test:
+            img = Image.open(self.images[index]).convert('RGB')
+            target = Image.open(self.masks[index]).convert('L') 
+        else:
+            img = Image.open(self.images[index]).convert('L')
+            target = Image.open(self.masks[index]).convert('L')            
+            m_img = Image.open(self.m_images[m_index]).convert('L')
+            m_img = m_img.resize(img.size)
+            img = np.expand_dims(np.array(img, dtype='uint8'), axis=2)
+            m_img = np.expand_dims(np.array(m_img, dtype='uint8'), axis=2)
+            gau = np.array(np.random.normal(loc=122.5, scale=0.2*255*255, size=img.shape), dtype='uint8')
+            img = Image.fromarray(np.concatenate((img, gau, m_img), axis=2))
 
         return img, target
 
@@ -81,25 +80,35 @@ class PGMN(data.Dataset):
         self.m_images = [os.path.join(median_image_dir, x + ".jpg") for x in m_file_names]
         self.m_masks = [os.path.join(median_mask_dir, x + ".jpg") for x in m_file_names]
         
-        '''if image_set == 'train' or image_set == 'val':
-            self.images.extend()
-            self.masks.extend()'''
-
         assert (len(self.images) == len(self.masks))
 
-        self.image = []
-        self.mask = []
-        for index in range(len(self.images)):
-            img, tar = self._read(index)
-            self.image.append(img)
-            self.mask.append(tar)
+        if image_set == 'train' or image_set == 'val':
+            self.image = []
+            self.mask = []
+            for index in range(len(self.images)):
+                img, tar = self._read(index, False)
+                self.image.append(img)
+                self.mask.append(tar)
+        else:
+            self.image = []
+            self.mask = []
+            for index in range(len(self.images)):
+                img, tar = self._read(index, True)
+                self.image.append(img)
+                self.mask.append(tar)
 
     def __len__(self):
         return len(self.images)
 
     def __getitem__(self, index):
+
+        img = self.image[index]
+        target = self.mask[index]
         
-        return self.image[index], self.mask[index]
+        if self.transform is not None:
+            img, target = self.transform(img, target)
+        
+        return img, target
 
 
 if __name__ == "__main__":

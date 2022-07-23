@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 
-def _accumulate(s_model, t_model, loader, optimizer, get_metrics, 
+def _accumulate(s_model, t_model, loader, optimizer, scheduler, get_metrics, 
                 device, metrics, criterion):
     """
     Args:
@@ -36,8 +36,9 @@ def _accumulate(s_model, t_model, loader, optimizer, get_metrics,
         if get_metrics:
             metrics.update(labels.detach().cpu().numpy(), preds)
         running_loss += loss.item() * images.size(0)
-
+    
+    scheduler.step()
     epoch_loss = running_loss / len(loader.dataset)
     score = metrics.get_results()
-
+    
     return score, epoch_loss

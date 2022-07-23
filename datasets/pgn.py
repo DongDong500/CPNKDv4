@@ -33,9 +33,6 @@ class PGN(data.Dataset):
             img = Image.open(self.images[index]).convert('L')
             target = Image.open(self.masks[index]).convert('L')            
 
-        if self.transform is not None:
-            img, target = self.transform(img, target)
-
         return img, target
 
     def __init__(self, root, datatype='CPN', dver='splits', 
@@ -86,8 +83,14 @@ class PGN(data.Dataset):
         return len(self.images)
 
     def __getitem__(self, index):
+
+        img = self.image[index]
+        target = self.mask[index]
         
-        return self.image[index], self.mask[index]
+        if self.transform is not None:
+            img, target = self.transform(img, target)
+        
+        return img, target
 
 
 

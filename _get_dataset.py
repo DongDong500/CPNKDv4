@@ -14,7 +14,7 @@ def _get_dataset(opts, dataset, dver):
         et.ExtRandomVerticalFlip(),
         et.ExtToTensor(),
         et.ExtNormalize(mean=mean, std=std),
-        et.GaussianPerturb(mean=0, std=opts.std)
+        et.GaussianPerturb(mean=opts.mu, std=opts.std)
         ])
     val_transform = et.ExtCompose([
         et.ExtResize(size=opts.resize_val, is_resize=opts.is_resize_val),
@@ -22,7 +22,7 @@ def _get_dataset(opts, dataset, dver):
         et.ExtScale(scale=opts.scale_factor_val),
         et.ExtToTensor(),
         et.ExtNormalize(mean=mean, std=std),
-        et.GaussianPerturb(mean=0, std=opts.std_val)
+        et.GaussianPerturb(mean=opts.mu_val, std=opts.std_val)
         ])
     test_transform = et.ExtCompose([
         et.ExtResize(size=opts.resize_test, is_resize=opts.is_resize_test),
@@ -30,7 +30,7 @@ def _get_dataset(opts, dataset, dver):
         et.ExtScale(scale=opts.scale_factor_test),
         et.ExtToTensor(),
         et.ExtNormalize(mean=mean, std=std),
-        et.GaussianPerturb(mean=0, std=opts.std_test)
+        et.GaussianPerturb(mean=opts.mu_test, std=opts.std_test)
         ])
 
     train_dst = dt.getdata.__dict__[dataset](root=opts.data_root, 

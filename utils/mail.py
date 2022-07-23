@@ -53,6 +53,7 @@ class MailSend(object):
         msg = MIMEMultipart()
         msg['Subject'] = self.subject
         msg.attach(MIMEText('Auto mail transfer system ... \n\n', 'plain'))
+        
         if isinstance(self.message, dict):
             for key, val in self.message.items():
                 if isinstance(val, dict):
