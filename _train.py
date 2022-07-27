@@ -113,6 +113,7 @@ def _train(opts, devices, run_id) -> dict:
         print("[!] Train from scratch...")
         resume_epoch = 0
         if torch.cuda.device_count() > 1:
+            print('cuda multiple GPUs')
             s_model = nn.DataParallel(s_model)
             t_model = nn.DataParallel(t_model)
         s_model.to(devices)

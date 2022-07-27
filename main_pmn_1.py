@@ -26,6 +26,7 @@ def exp(opts):
         'Overall F1[0] mean/std' : mlog['Experiments']['Overall F1[0] mean/std'],
         'Overall F1[1] mean/std' : mlog['Experiments']['Overall F1[1] mean/std']
     }
+    slog['dir'] = opts.current_time
 
     params['Overall F1[0] mean/std'] = mlog['Experiments']['Overall F1[0] mean/std']
     params['Overall F1[1] mean/std'] = mlog['Experiments']['Overall F1[1] mean/std']
@@ -51,12 +52,9 @@ if __name__ == '__main__':
     try:
         is_error = False
         
-        short_memo = ['pmn (simultaneous) base study n=5 std=0', 
-                        'pmn (simultaneous) base study n=5 mu=0.445 std=0.226',
-                        'pmn (simultaneous) base study n=5 mu=0.445 std=0.126',
-                        'pmn (simultaneous) base study n=5 mu=0.0 std=0.1']
-        mu = [0.0, 0.445, 0.445, 0]
-        std = [0.0, 0.226, 0.126, 0.1]
+        short_memo = ['pmn (simultaneous) base study n=20 std=0']
+        mu = [0.0]
+        std = [0.0]
 
         assert (len(short_memo) == len(mu) == len(std))
 
@@ -64,7 +62,7 @@ if __name__ == '__main__':
         for i in range(len(short_memo)):
             opts = get_argparser()
             opts.s_dataset = 'pmn'
-            opts.exp_itr=5
+            opts.exp_itr=20
             opts.short_memo = short_memo[i]
             opts.mu = mu[i]
             opts.std = std[i]

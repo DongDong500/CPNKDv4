@@ -4,7 +4,7 @@ import numpy as np
 import torch.utils.data as data
 from PIL import Image
 
-class PGMN(data.Dataset):
+class _PPPN(data.Dataset):
     """
     Args:6
         root (string): Root directory of the VOC Dataset.
@@ -15,78 +15,78 @@ class PGMN(data.Dataset):
         dver (str): version of dataset (ex) ``splits/v5/3``
         kfold (int): k-fold cross validation
     """
-    def __init__(self, root, datatype='CPN', dver='splits', 
-                    image_set='train', transform=None, is_rgb=True, **kwargs):
-
-        self.transform = transform
-        self.is_rgb = is_rgb
-
-        if image_set == 'train' or image_set == 'val':
-            self.is_test = False
-        else:
-            self.is_test = True
-
-        image_dir = os.path.join(root, 'CPN_all', 'Images')
-        mask_dir = os.path.join(root, 'CPN_all', 'Masks')
-        median_image_dir = os.path.join(root, 'Median', 'Images')
-        median_mask_dir = os.path.join(root, 'Median', 'Masks')
-
-        if not os.path.exists(image_dir) or not os.path.exists(mask_dir):
-            raise Exception('Dataset not found or corrupted.')
-        
-        if not os.path.exists(median_image_dir) or not os.path.exists(median_mask_dir):
-            raise Exception('Dataset not found or corrupted.')
-        
-        split_f = os.path.join(root, 'CPN_all', dver, image_set.rstrip('\n') + '.txt')
-        m_split_f = os.path.join(root, 'Median/splits', image_set.rstrip('\n') + '.txt')
-
-        if not os.path.exists(split_f) or not os.path.exists(m_split_f):
-            raise Exception('Wrong image_set entered!', split_f, m_split_f)
-
-        with open(os.path.join(split_f), "r") as f:
-            file_names = [x.strip() for x in f.readlines()]
-        
-        with open(os.path.join(m_split_f), "r") as f:
-            m_file_names = [x.strip() for x in f.readlines()]
-
-        self.images = [os.path.join(image_dir, x + ".bmp") for x in file_names]
-        self.masks = [os.path.join(mask_dir, x + "_mask.bmp") for x in file_names]
-
-        self.m_images = [os.path.join(median_image_dir, x + ".jpg") for x in m_file_names]
-        self.m_masks = [os.path.join(median_mask_dir, x + ".jpg") for x in m_file_names]
-        
-        assert (len(self.images) == len(self.masks))
-
-    def __len__(self):
-        return len(self.images)
-
-    def __getitem__(self, index):
+    def _read(self, index, r_index, is_test):
         """
         Args:
             index (int): Index
         Returns:
             tuple: (image, target) where target is the image segmentation.
         """
-        if not os.path.exists(self.images[index]) or not os.path.exists(self.m_images[index]):
+        if not os.path.exists(self.images[index]) or not os.path.exists(self.images[r_index]):
             raise FileNotFoundError
-        if not os.path.exists(self.masks[index]) or not os.path.exists(self.m_masks[index]):
+        if not os.path.exists(self.masks[index]) or not os.path.exists(self.masks[r_index]):
             raise FileNotFoundError
         
-        block = int(len(self.m_images) / len(self.images))
-        m_index = block * index + np.random.randint(0, block)
-        
-        if self.is_test:
+        if is_test:
             img = Image.open(self.images[index]).convert('RGB')
             target = Image.open(self.masks[index]).convert('L') 
         else:
             img = Image.open(self.images[index]).convert('L')
             target = Image.open(self.masks[index]).convert('L')            
-            m_img = Image.open(self.m_images[m_index]).convert('L')
-            m_img = m_img.resize(img.size)
             img = np.expand_dims(np.array(img, dtype='uint8'), axis=2)
-            m_img = np.expand_dims(np.array(m_img, dtype='uint8'), axis=2)
-            gau = np.array(np.random.normal(loc=122.5, scale=0.2*255*255, size=img.shape), dtype='uint8')
-            img = Image.fromarray(np.concatenate((img, gau, m_img), axis=2))
+            img = Image.fromarray(np.concatenate((img, img, img), axis=2))
+
+        return img, target
+
+    def __init__(self, root, datatype='CPN', dver='splits', 
+                    image_set='train', transform=None, is_rgb=True):
+
+        self.transform = transform
+        self.is_rgb = is_rgb
+
+        image_dir = os.path.join(root, 'CPN_all', 'Images')
+        mask_dir = os.path.join(root, 'CPN_all', 'Masks')
+
+        if not os.path.exists(image_dir) or not os.path.exists(mask_dir):
+            raise Exception('Dataset not found or corrupted.')
+        
+        split_f = os.path.join(root, 'CPN_all', dver, image_set.rstrip('\n') + '.txt')
+
+        if not os.path.exists(split_f):
+            raise Exception('Wrong image_set entered!', split_f)
+
+        with open(os.path.join(split_f), "r") as f:
+            file_names = [x.strip() for x in f.readlines()]
+
+        self.images = [os.path.join(image_dir, x + ".bmp") for x in file_names]
+        self.masks = [os.path.join(mask_dir, x + "_mask.bmp") for x in file_names]
+        
+        assert (len(self.images) == len(self.masks))
+
+        if image_set == 'train' or image_set == 'val':
+            self.image = []
+            self.mask = []
+            for index in range(len(self.images)):
+                r_index = np.random.randint(0, len(self.images))
+                img, tar = self._read(index, r_index, False)
+                self.image.append(img)
+                self.mask.append(tar)
+        else:
+            self.image = []
+            self.mask = []
+            for index in range(len(self.images)):
+                r_index = np.random.randint(0, len(self.images))
+                img, tar = self._read(index, r_index,True)
+                self.image.append(img)
+                self.mask.append(tar)
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, index):
+
+        img = self.image[index]
+        target = self.mask[index]
         
         if self.transform is not None:
             img, target = self.transform(img, target)
@@ -109,7 +109,7 @@ if __name__ == "__main__":
             et.ExtNormalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             ])
     
-    dst = PGMN(root='/data1/sdi/datasets', datatype='pgmn', image_set='train',
+    dst = _PPPN(root='/data1/sdi/datasets', datatype='pgpn', image_set='train',
                     transform=transform, is_rgb=True, dver='splits/v5/3')
     train_loader = DataLoader(dst, batch_size=16,
                                 shuffle=True, num_workers=2, drop_last=True)

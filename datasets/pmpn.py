@@ -4,7 +4,7 @@ import numpy as np
 import torch.utils.data as data
 from PIL import Image
 
-class PGMN(data.Dataset):
+class PMPN(data.Dataset):
     """
     Args:6
         root (string): Root directory of the VOC Dataset.
@@ -16,7 +16,7 @@ class PGMN(data.Dataset):
         kfold (int): k-fold cross validation
     """
     def __init__(self, root, datatype='CPN', dver='splits', 
-                    image_set='train', transform=None, is_rgb=True, **kwargs):
+                    image_set='train', transform=None, is_rgb=True):
 
         self.transform = transform
         self.is_rgb = is_rgb
@@ -72,8 +72,7 @@ class PGMN(data.Dataset):
         if not os.path.exists(self.masks[index]) or not os.path.exists(self.m_masks[index]):
             raise FileNotFoundError
         
-        block = int(len(self.m_images) / len(self.images))
-        m_index = block * index + np.random.randint(0, block)
+        m_index = np.random.randint(0, len(self.m_images))
         
         if self.is_test:
             img = Image.open(self.images[index]).convert('RGB')
@@ -85,8 +84,7 @@ class PGMN(data.Dataset):
             m_img = m_img.resize(img.size)
             img = np.expand_dims(np.array(img, dtype='uint8'), axis=2)
             m_img = np.expand_dims(np.array(m_img, dtype='uint8'), axis=2)
-            gau = np.array(np.random.normal(loc=122.5, scale=0.2*255*255, size=img.shape), dtype='uint8')
-            img = Image.fromarray(np.concatenate((img, gau, m_img), axis=2))
+            img = Image.fromarray(np.concatenate((img, m_img, img), axis=2))
         
         if self.transform is not None:
             img, target = self.transform(img, target)
@@ -95,7 +93,7 @@ class PGMN(data.Dataset):
 
 
 if __name__ == "__main__":
-
+    # /data1/sdi/CPNKDv4
     print(os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ))
     sys.path.append(os.path.dirname( os.path.dirname( os.path.abspath(__file__) ) ))
     from utils import ext_transforms as et
@@ -109,7 +107,7 @@ if __name__ == "__main__":
             et.ExtNormalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             ])
     
-    dst = PGMN(root='/data1/sdi/datasets', datatype='pgmn', image_set='train',
+    dst = PMPN(root='/data1/sdi/datasets', datatype='pgmn', image_set='train',
                     transform=transform, is_rgb=True, dver='splits/v5/3')
     train_loader = DataLoader(dst, batch_size=16,
                                 shuffle=True, num_workers=2, drop_last=True)

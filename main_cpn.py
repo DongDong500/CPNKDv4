@@ -26,6 +26,7 @@ def exp(opts):
         'Overall F1[0] mean/std' : mlog['Experiments']['Overall F1[0] mean/std'],
         'Overall F1[1] mean/std' : mlog['Experiments']['Overall F1[1] mean/std']
     }
+    slog['dir'] = opts.current_time
 
     params['Overall F1[0] mean/std'] = mlog['Experiments']['Overall F1[0] mean/std']
     params['Overall F1[1] mean/std'] = mlog['Experiments']['Overall F1[1] mean/std']
@@ -51,18 +52,24 @@ if __name__ == '__main__':
     try:
         is_error = False
         
-        short_memo = ['cpn base study n=5 std=0', 
-                        'cpn base study n=5 mu=0.445 std=0.226',
-                        'cpn base study n=5 mu=0.445 std=0.126',
-                        'cpn base study n=5 mu=0.0 std=0.1']
-        mu = [0.0, 0.445, 0.445, 0]
-        std = [0.0, 0.226, 0.126, 0.1]
+        short_memo = ['cpn base study n=20 std=0', 
+                        'cpn base study n=20 mu=0.445 std=0.126',
+                        'cpn base study n=20 mu=0.445 std=0.1',
+                        'cpn base study n=20 mu=0.0 std=0.1',
+                        'cpn base study n=20 mu=0.0 std=0.05',
+                        'cpn base study n=20 mu=0.0 std=0.2']
+        mu = [0.0, 0.445, 0.445, 0, 0, 0]
+        std = [0.0, 0.126, 0.1, 0.1, 0.05, 0.2]
 
-        assert (len(short_memo) == len(mu) == len(std))
+        assert ( len(short_memo) == len(mu) == len(std) )
 
         total_time = datetime.now()
         for i in range(len(short_memo)):
             opts = get_argparser()
+            opts.s_dataset = 'cpn'
+            opts.exp_itr=20
+            if i > 0:
+                opts.patience = 300
             opts.short_memo = short_memo[i]
             opts.mu = mu[i]
             opts.std = std[i]
@@ -75,8 +82,7 @@ if __name__ == '__main__':
         is_error = True
         print("Error", e)
         print(traceback.format_exc())
-        os.rename(os.path.join(opts.default_prefix, opts.current_time), os.path.join(opts.default_prefix, opts.current_time + '_error'))
-    
+
     if is_error:
         os.rename(os.path.join(opts.default_prefix, opts.current_time), os.path.join(opts.default_prefix, opts.current_time + '_aborted'))
     

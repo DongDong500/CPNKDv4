@@ -679,6 +679,81 @@ class GaussianBlur(object):
         return s
 
 
+class ExtGaussianRandomCrop(object):
+    """Crop the given PIL Image at a gaussian dist based random location.
+    Args:
+        size (sequence or int): Desired output size of the crop. If size is an
+            int instead of sequence like (h, w), a square crop (size, size) is
+            made.
+        pad_if_needed (boolean): It will pad the image if smaller than the
+            desired size to avoid raising an exception.
+    """
+
+    def __init__(self, size, normal_h, normal_w, block_size, pad_if_needed=True, verbose=False):
+        if isinstance(size, numbers.Number):
+            self.size = (int(size), int(size))
+        else:
+            self.size = size
+        self.pad_if_needed = pad_if_needed
+        self.normal_h = normal_h
+        self.normal_w = normal_w
+        self.block_size = block_size
+        self.verbose = verbose
+        
+    @staticmethod
+    def get_params(idxw, idxh, output_size):
+        """Get parameters for ``crop`` for a random crop.
+        Args:
+            output_size (tuple): Expected output size of the crop.
+        Returns:
+            tuple: params (i, j, h, w) to be passed to ``crop`` for random crop.
+        """
+        th, tw = output_size
+        i = 0 if idxh - th/2 < 0 else int(idxh - th/2)
+        j = 0 if idxw - tw/2 < 0 else int(idxw - tw/2)
+
+        return i, j, th, tw
+        
+    @staticmethod
+    def get_index(mu, sigma, block_size, verbose=True):
+        x = np.random.normal(mu, sigma)
+        x = np.random.randint(low=(np.rint(x) - 1)*block_size, high=np.rint(x)*block_size)
+        if verbose:
+            print(f'mu: {mu}, std: {sigma}, x:{x}')
+        return x
+
+    def __call__(self, img, lbl):
+        """
+        Args:
+            img (PIL Image): Image to be cropped.
+            lbl (PIL Image): Label to be cropped.
+        Returns:
+            PIL Image: Cropped image.
+            PIL Image: Cropped label.
+        """
+        assert img.size == lbl.size, 'size of img and lbl should be the same. %s, %s'%(img.size, lbl.size)
+
+        idxw = self.get_index(mu=self.normal_w[0], sigma=self.normal_w[1], block_size=self.block_size, verbose=self.verbose)
+        idxh = self.get_index(mu=self.normal_h[0], sigma=self.normal_h[1], block_size=self.block_size, verbose=self.verbose)
+
+        # pad the width if needed
+        if self.pad_if_needed and img.size[0] < self.size[1]:
+            img = F.pad(img, padding=int((1 + self.size[1] - img.size[0]) / 2))
+            lbl = F.pad(lbl, padding=int((1 + self.size[1] - lbl.size[0]) / 2))
+
+        # pad the height if needed
+        if self.pad_if_needed and img.size[1] < self.size[0]:
+            img = F.pad(img, padding=int((1 + self.size[0] - img.size[1]) / 2))
+            lbl = F.pad(lbl, padding=int((1 + self.size[0] - lbl.size[1]) / 2))
+
+        i, j, h, w = self.get_params(idxw, idxh, self.size)
+
+        return F.crop(img, i, j, h, w), F.crop(lbl, i, j, h, w)
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(size={0})'.format(self.size)
+
+
 def _setup_size(size, error_msg):
     if isinstance(size, numbers.Number):
         return int(size), int(size)

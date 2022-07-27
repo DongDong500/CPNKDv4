@@ -15,34 +15,16 @@ class PPPN(data.Dataset):
         dver (str): version of dataset (ex) ``splits/v5/3``
         kfold (int): k-fold cross validation
     """
-    def _read(self, index, is_test):
-        """
-        Args:
-            index (int): Index
-        Returns:
-            tuple: (image, target) where target is the image segmentation.
-        """
-        if not os.path.exists(self.images[index]):
-            raise FileNotFoundError
-        if not os.path.exists(self.masks[index]):
-            raise FileNotFoundError
-        
-        if is_test:
-            img = Image.open(self.images[index]).convert('RGB')
-            target = Image.open(self.masks[index]).convert('L') 
-        else:
-            img = Image.open(self.images[index]).convert('L')
-            target = Image.open(self.masks[index]).convert('L')            
-            img = np.expand_dims(np.array(img, dtype='uint8'), axis=2)
-            img = Image.fromarray(np.concatenate((img, img, img), axis=2))
-
-        return img, target
-
     def __init__(self, root, datatype='CPN', dver='splits', 
                     image_set='train', transform=None, is_rgb=True):
 
         self.transform = transform
         self.is_rgb = is_rgb
+
+        if image_set == 'train' or image_set == 'val':
+            self.is_test = False
+        else:
+            self.is_test = True
 
         image_dir = os.path.join(root, 'CPN_all', 'Images')
         mask_dir = os.path.join(root, 'CPN_all', 'Masks')
@@ -61,30 +43,36 @@ class PPPN(data.Dataset):
         self.images = [os.path.join(image_dir, x + ".bmp") for x in file_names]
         self.masks = [os.path.join(mask_dir, x + "_mask.bmp") for x in file_names]
         
-        assert (len(self.images) == len(self.masks))
-
-        if image_set == 'train' or image_set == 'val':
-            self.image = []
-            self.mask = []
-            for index in range(len(self.images)):
-                img, tar = self._read(index, False)
-                self.image.append(img)
-                self.mask.append(tar)
-        else:
-            self.image = []
-            self.mask = []
-            for index in range(len(self.images)):
-                img, tar = self._read(index, True)
-                self.image.append(img)
-                self.mask.append(tar)
+        assert (len(self.images) == len(self.masks))      
 
     def __len__(self):
         return len(self.images)
 
     def __getitem__(self, index):
+        """
+        Args:
+            index (int): Index
+        Returns:
+            tuple: (image, target) where target is the image segmentation.
+        """
+        r_index = np.random.randint(0, len(self.images))
 
-        img = self.image[index]
-        target = self.mask[index]
+        if not os.path.exists(self.images[index]) or not os.path.exists(self.images[r_index]):
+            raise FileNotFoundError
+        if not os.path.exists(self.masks[index]) or not os.path.exists(self.masks[r_index]):
+            raise FileNotFoundError
+
+        if self.is_test:
+            img = Image.open(self.images[index]).convert('RGB')
+            target = Image.open(self.masks[index]).convert('L') 
+        else:
+            img = Image.open(self.images[index]).convert('L')
+            r_img = Image.open(self.images[r_index]).convert('L')
+            r_img = r_img.resize(img.size)
+            target = Image.open(self.masks[index]).convert('L')            
+            img = np.expand_dims(np.array(img, dtype='uint8'), axis=2)
+            r_img = np.expand_dims(np.array(r_img, dtype='uint8'), axis=2)
+            img = Image.fromarray(np.concatenate((img, r_img, img), axis=2))
         
         if self.transform is not None:
             img, target = self.transform(img, target)

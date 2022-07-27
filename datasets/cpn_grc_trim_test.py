@@ -1,11 +1,11 @@
 import os
 import sys
-import numpy as np
 import torch.utils.data as data
 from PIL import Image
 
-class PGPN(data.Dataset):
+class CPNwithTrimTest(data.Dataset):
     """
+    Train gaussian random crop from raw train data and test with trimed data
     Args:6
         root (string): Root directory of the VOC Dataset.
         datatype (string): Dataset type 
@@ -15,43 +15,7 @@ class PGPN(data.Dataset):
         dver (str): version of dataset (ex) ``splits/v5/3``
         kfold (int): k-fold cross validation
     """
-    def __init__(self, root, datatype='CPN', dver='splits', 
-                    image_set='train', transform=None, is_rgb=True,
-                    mu=0, std=0, **kwargs):
-
-        self.transform = transform
-        self.is_rgb = is_rgb
-        self.mu = mu
-        self.std = std
-
-        if image_set == 'train' or image_set == 'val':
-            self.is_test = False
-        else:
-            self.is_test = True
-
-        image_dir = os.path.join(root, 'CPN_all', 'Images')
-        mask_dir = os.path.join(root, 'CPN_all', 'Masks')
-
-        if not os.path.exists(image_dir) or not os.path.exists(mask_dir):
-            raise Exception('Dataset not found or corrupted.')
-        
-        split_f = os.path.join(root, 'CPN_all', dver, image_set.rstrip('\n') + '.txt')
-
-        if not os.path.exists(split_f):
-            raise Exception('Wrong image_set entered!', split_f)
-
-        with open(os.path.join(split_f), "r") as f:
-            file_names = [x.strip() for x in f.readlines()]
-
-        self.images = [os.path.join(image_dir, x + ".bmp") for x in file_names]
-        self.masks = [os.path.join(mask_dir, x + "_mask.bmp") for x in file_names]
-        
-        assert (len(self.images) == len(self.masks))
-
-    def __len__(self):
-        return len(self.images)
-
-    def __getitem__(self, index):
+    def _read(self, index):
         """
         Args:
             index (int): Index
@@ -63,22 +27,64 @@ class PGPN(data.Dataset):
         if not os.path.exists(self.masks[index]):
             raise FileNotFoundError
         
-        if self.is_test:
+        if self.is_rgb:
             img = Image.open(self.images[index]).convert('RGB')
-            target = Image.open(self.masks[index]).convert('L') 
+            target = Image.open(self.masks[index]).convert('L')         
         else:
             img = Image.open(self.images[index]).convert('L')
             target = Image.open(self.masks[index]).convert('L')            
-            m_img = Image.open(self.images[index]).convert('L')
-            img = np.expand_dims(np.array(img, dtype='uint8'), axis=2)
-            m_img = np.expand_dims(np.array(m_img, dtype='uint8'), axis=2)
-            gau = np.array(np.random.normal(loc=self.mu, scale=self.std, size=img.shape), dtype='uint8')
-            img = Image.fromarray(np.concatenate((img, gau, m_img), axis=2))
+
+        return img, target
+
+    def __init__(self, root, datatype='CPN', dver='splits', 
+                    image_set='train', transform=None, is_rgb=True):
+
+        self.transform = transform
+        self.is_rgb = is_rgb
+
+        if dver == 'train' or dver == 'val':
+            image_dir = os.path.join(root, 'CPN_all', 'Images')
+            mask_dir = os.path.join(root, 'CPN_all', 'Masks')
+        else:
+            image_dir = os.path.join(root, 'CPN_trim', 'Images')
+            mask_dir = os.path.join(root, 'CPN_trim', 'Masks')
+
+        if not os.path.exists(image_dir) or not os.path.exists(mask_dir):
+            raise Exception('Dataset not found or corrupted.')
+        
+        split_f = os.path.join(root, 'CPN_all', dver, image_set.rstrip('\n') + '.txt')
+
+        if not os.path.exists(split_f):
+            raise Exception('Wrong image_set entered!' 
+                            'Please use image_set="train" or image_set="val"', split_f)
+
+        with open(os.path.join(split_f), "r") as f:
+            file_names = [x.strip() for x in f.readlines()]
+
+        self.images = [os.path.join(image_dir, x + ".bmp") for x in file_names]
+        self.masks = [os.path.join(mask_dir, x + "_mask.bmp") for x in file_names]
+        
+        assert (len(self.images) == len(self.masks))
+
+        self.image = []
+        self.mask = []
+        for index in range(len(self.images)):
+            img, tar = self._read(index)
+            self.image.append(img)
+            self.mask.append(tar)
+
+    def __getitem__(self, index):
+
+        img = self.image[index]
+        target = self.mask[index]
         
         if self.transform is not None:
             img, target = self.transform(img, target)
         
         return img, target
+
+    def __len__(self):
+        return len(self.images)
 
 
 if __name__ == "__main__":
@@ -96,11 +102,11 @@ if __name__ == "__main__":
             et.ExtNormalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             ])
     
-    dst = PGPN(root='/data1/sdi/datasets', datatype='pgpn', image_set='train',
+    dst = CPNwithTrimTest(root='/data1/sdi/datasets', datatype='CPN', image_set='test',
                     transform=transform, is_rgb=True, dver='splits/v5/3')
     train_loader = DataLoader(dst, batch_size=16,
                                 shuffle=True, num_workers=2, drop_last=True)
-    print(f'dataset len(dst) = {len(dst)}')
+    
     for i, (ims, lbls) in tqdm(enumerate(train_loader)):
         print(ims.shape)
         print(lbls.shape)

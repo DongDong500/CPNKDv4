@@ -32,7 +32,8 @@ def train(opts) -> dict:
     random.seed(opts.random_seed)
 
     test_result = {}
-    for exp_itr in range(0, opts.exp_itr):        
+    for exp_itr in range(0, opts.exp_itr):   
+        print(f"{exp_itr+1}-th experiment")     
         run_id = exp_itr
         test_result[run_id] = _train(opts, devices, run_id)
             

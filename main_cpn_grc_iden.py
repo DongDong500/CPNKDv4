@@ -26,6 +26,7 @@ def exp(opts):
         'Overall F1[0] mean/std' : mlog['Experiments']['Overall F1[0] mean/std'],
         'Overall F1[1] mean/std' : mlog['Experiments']['Overall F1[1] mean/std']
     }
+    slog['dir'] = opts.current_time
 
     params['Overall F1[0] mean/std'] = mlog['Experiments']['Overall F1[0] mean/std']
     params['Overall F1[1] mean/std'] = mlog['Experiments']['Overall F1[1] mean/std']
@@ -50,24 +51,22 @@ if __name__ == '__main__':
 
     try:
         is_error = False
-        
-        short_memo = ['pmn (simultaneous) base study n=5 std=0', 
-                        'pmn (simultaneous) base study n=5 mu=0.445 std=0.226',
-                        'pmn (simultaneous) base study n=5 mu=0.445 std=0.126',
-                        'pmn (simultaneous) base study n=5 mu=0.0 std=0.1']
-        mu = [0.0, 0.445, 0.445, 0]
-        std = [0.0, 0.226, 0.126, 0.1]
-
-        assert (len(short_memo) == len(mu) == len(std))
+        #size=(256, 256), normal_h=(21.08, 8.13), normal_w=(44.22, 12.01), block_size=5
+        short_memo = ['cpn gaussian random crop with identical test loader base study n=5']
 
         total_time = datetime.now()
         for i in range(len(short_memo)):
             opts = get_argparser()
-            opts.s_dataset = 'pmn'
+            opts.s_dataset = 'cpn'
             opts.exp_itr=5
             opts.short_memo = short_memo[i]
-            opts.mu = mu[i]
-            opts.std = std[i]
+            opts.gaussian_crop = True
+            opts.gaussian_crop_H = (21.08, 8.13)
+            opts.gaussian_crop_W = (44.22, 12.01)
+            opts.gaussian_crop_block_size = 5
+            opts.crop_size = (256, 256)
+            opts.crop_size_val = (256, 256)
+            opts.crop_size_test = (512, 448)
             exp(opts)
         
     except KeyboardInterrupt:

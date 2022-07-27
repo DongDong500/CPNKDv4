@@ -54,14 +54,14 @@ def _get_argparser():
     # Tensorboard & store params options
     parser.add_argument("--Tlog_dir", type=str, default='/',
                         help="path to tensorboard log (default: /)")
-    parser.add_argument("--save_model", action='store_true', default=False,
+    parser.add_argument("--save_model", action='store_false',
                         help="save best model param to \"./best-param\" (default: False)")
     parser.add_argument("--best_ckpt", type=str, default=None,
                         help="save best model param to \"./best-param\"")
     # Resume model from checkpoint
     parser.add_argument("--resume_ckpt", default='/', type=str,
                         help="resume from checkpoint (defalut: /)")
-    parser.add_argument("--continue_training", action='store_true', default=False,
+    parser.add_argument("--continue_training", action='store_true',
                         help="restore state from reserved params (defaults: false)")
 
     # Model options
@@ -97,26 +97,38 @@ def _get_argparser():
                         help="number of classes (default: 2)")
     parser.add_argument("--num_workers", type=int, default=8,
                         help="number of workers (default: 8)")
-    parser.add_argument("--is_rgb", action='store_false', default=True,
+    parser.add_argument("--is_rgb", action='store_false',
                         help="choose True: RGB, False: gray-scale (default: True)")
-    parser.add_argument("--tvs", type=int, default=5,
-                        help="The number of blocks where train set to be split (default: 5)")
+    parser.add_argument("--tvs", type=int, default=20,
+                        help="The number of blocks where train set to be split (default: 20)")
+    parser.add_argument("--pseudo_lbl_ratio", type=float, default=0.5,
+                        help="ratio of pseudo label (default: 0.5)")
     # Transformation & Augmentation options
     parser.add_argument("--resize", default=(496, 468))
-    parser.add_argument("--is_resize", action='store_true', default=False,
-                        help="resize data (default: False)")
+    parser.add_argument("--is_resize", action='store_false',
+                        help="resize data (default: True)")
     parser.add_argument("--resize_val", default=(496, 468))
-    parser.add_argument("--is_resize_val", action='store_true', default=False,
-                        help="resize validate data (default: False)")
+    parser.add_argument("--is_resize_val", action='store_false',
+                        help="resize validate data (default: True)")
     parser.add_argument("--resize_test", default=(496, 468))
-    parser.add_argument("--is_resize_test", action='store_true', default=False,
-                        help="resize test data (default: False)")
+    parser.add_argument("--is_resize_test", action='store_false',
+                        help="resize test data (default: True)")
     parser.add_argument("--crop_size", default=(512, 448))
     parser.add_argument("--crop_size_val", default=(512, 448))
     parser.add_argument("--crop_size_test", default=(512, 448))
+    parser.add_argument("--gaussian_crop", action='store_true')
+    parser.add_argument("--gaussian_crop_H", default=(0.0 ,0.1),
+                        help='gaussian base random crop H (mean, std)')
+    parser.add_argument("--gaussian_crop_W", default=(0.0 ,0.1),
+                        help='gaussian base random crop W (mean, std)')
+    parser.add_argument("--gaussian_crop_block_size", type=int, default=5)
     parser.add_argument("--scale_factor", type=float, default=5e-1)
     parser.add_argument("--scale_factor_val", type=float, default=5e-1)
     parser.add_argument("--scale_factor_test", type=float, default=5e-1)
+    parser.add_argument("--c_std", type=float, default=0.0,
+                        help="train sigma in gaussian noise channel (default: 0)")
+    parser.add_argument("--c_mu", type=float, default=0.0,
+                        help="train mean in gaussian noise channel (default: 0)")
     parser.add_argument("--std", type=float, default=0.0,
                         help="train sigma in gaussian perturbation (default: 0)")
     parser.add_argument("--mu", type=float, default=0.0,
@@ -134,7 +146,7 @@ def _get_argparser():
                         help="random seed (default: 1)")
     parser.add_argument("--total_itrs", type=int, default=2500,
                         help="epoch number (default: 2.5k)")
-    parser.add_argument("--lr_policy", type=str, default='step',
+    parser.add_argument("--lr_policy", type=str, default='poly',
                         help="learning rate scheduler policy")
     parser.add_argument("--lr", type=float, default=1e-1,
                         help="learning rate (default: 1e-1)")
@@ -148,8 +160,8 @@ def _get_argparser():
                         help="optimizer (default: SGD)")
     parser.add_argument("--loss_type", type=str, default='kd_loss',
                         help="criterion (default: kd loss alpha=0 for ce+dl)")
-    parser.add_argument("--batch_size", type=int, default=16,
-                        help='batch size (default: 16)')
+    parser.add_argument("--batch_size", type=int, default=32,
+                        help='batch size (default: 32)')
     parser.add_argument("--exp_itr", type=int, default=2,
                         help='repeat N-identical experiments (default: 2)')    
     # Knowledge distillation
@@ -172,13 +184,13 @@ def _get_argparser():
                         help="epoch interval for test (default: 1)")
     parser.add_argument("--test_batch_size", type=int, default=4,
                         help='batch size for test (default: 4)')
-    parser.add_argument("--save_test_results", action='store_true', default=False,
-                        help='save test results to \"./test\" (default: False)')
+    parser.add_argument("--save_test_results", action='store_false',
+                        help='save test results to \"./test\" (default: True)')
     parser.add_argument("--test_results_dir", type=str, default='/',
                         help="save segmentation results to (default: /)")
     
     # Run Demo
-    parser.add_argument("--run_demo", action='store_true', default=False)
+    parser.add_argument("--run_demo", action='store_true')
 
     return parser
 

@@ -26,6 +26,7 @@ def exp(opts):
         'Overall F1[0] mean/std' : mlog['Experiments']['Overall F1[0] mean/std'],
         'Overall F1[1] mean/std' : mlog['Experiments']['Overall F1[1] mean/std']
     }
+    slog['dir'] = opts.current_time
 
     params['Overall F1[0] mean/std'] = mlog['Experiments']['Overall F1[0] mean/std']
     params['Overall F1[1] mean/std'] = mlog['Experiments']['Overall F1[1] mean/std']
@@ -50,28 +51,27 @@ if __name__ == '__main__':
 
     try:
         is_error = False
+        is_abort = False
         
-        short_memo = ['pmn (simultaneous) base study n=5 std=0', 
-                        'pmn (simultaneous) base study n=5 mu=0.445 std=0.226',
-                        'pmn (simultaneous) base study n=5 mu=0.445 std=0.126',
-                        'pmn (simultaneous) base study n=5 mu=0.0 std=0.1']
-        mu = [0.0, 0.445, 0.445, 0]
-        std = [0.0, 0.226, 0.126, 0.1]
+        short_memo = ['pmpn base study n=20 (non deterministic)']
+        dataset = ['pmpn']
+        mu = [122.5]
+        std = [0.0]
 
         assert (len(short_memo) == len(mu) == len(std))
 
         total_time = datetime.now()
         for i in range(len(short_memo)):
             opts = get_argparser()
-            opts.s_dataset = 'pmn'
-            opts.exp_itr=5
+            opts.s_dataset = dataset[i]
+            opts.exp_itr=20
             opts.short_memo = short_memo[i]
-            opts.mu = mu[i]
-            opts.std = std[i]
+            opts.c_mu = mu[i]
+            opts.c_std = std[i]
             exp(opts)
         
     except KeyboardInterrupt:
-        is_error = True
+        is_abort = True
         print("Stop !!!")        
     except Exception as e:
         is_error = True
@@ -79,7 +79,9 @@ if __name__ == '__main__':
         print(traceback.format_exc())
 
     if is_error:
-        os.rename(os.path.join(opts.default_prefix, opts.current_time), os.path.join(opts.default_prefix, opts.current_time + '_aborted'))
+        os.rename(os.path.join(opts.default_prefix, opts.current_time), os.path.join(opts.default_prefix, opts.current_time + '_error'))
+    if is_abort:
+        os.rename(os.path.join(opts.default_prefix, opts.current_time), os.path.join(opts.default_prefix, opts.current_time + '_aborted'))    
     
     total_time = datetime.now() - total_time
     print('Time elapsed (h:m:s.ms) {}'.format(total_time))
